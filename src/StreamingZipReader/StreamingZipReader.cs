@@ -125,7 +125,7 @@ public sealed partial class StreamingZipReader : IAsyncDisposable
 
         var version = reader.ReadUInt16LittleEndian();
         if (version > 45)
-            throw new NotSupportedException("Zip format versions greater than 2.0 have not been tested.");
+            throw new NotSupportedException("Zip format versions greater than 4.5 have not been tested.");
 
         var flags = reader.ReadUInt16LittleEndian();
         if (flags != 0)
