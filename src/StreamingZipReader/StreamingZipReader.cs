@@ -6,8 +6,8 @@ namespace Wololo.StreamingZipReader;
 
 public sealed partial class StreamingZipReader : IAsyncDisposable
 {
-    private static readonly byte[] LocalFileHeader = { (byte)'P', (byte)'K', 3, 4 };
-    private static readonly byte[] CentralDirectoryHeader = { (byte)'P', (byte)'K', 1, 2 };
+    private static readonly byte[] LocalFileHeader = [(byte)'P', (byte)'K', 3, 4];
+    private static readonly byte[] CentralDirectoryHeader = [(byte)'P', (byte)'K', 1, 2];
 
     private readonly bool leaveOpen;
     private Stream? stream;
@@ -24,10 +24,7 @@ public sealed partial class StreamingZipReader : IAsyncDisposable
         this.leaveOpen = leaveOpen;
     }
 
-    public ValueTask DisposeAsync()
-    {
-        return leaveOpen || stream is null ? ValueTask.CompletedTask : stream.DisposeAsync();
-    }
+    public ValueTask DisposeAsync() => leaveOpen || stream is null ? ValueTask.CompletedTask : stream.DisposeAsync();
 
     public async ValueTask<bool> MoveToNextEntryAsync(bool skipDirectories, CancellationToken cancellationToken)
     {
@@ -44,7 +41,7 @@ public sealed partial class StreamingZipReader : IAsyncDisposable
         }
         else if (currentEntry is not null)
         {
-            remainingLength = currentEntry.CompressedLength;
+            remainingLength = currentEntry.Value.CompressedLength;
         }
 
         if (remainingLength != 0)
@@ -177,7 +174,7 @@ public sealed partial class StreamingZipReader : IAsyncDisposable
 
         if (currentDeflateStream is null)
         {
-            currentSubStream = new SubStream(stream!, currentEntry.CompressedLength);
+            currentSubStream = new SubStream(stream!, currentEntry.Value.CompressedLength);
             currentDeflateStream = new DeflateStream(currentSubStream, CompressionMode.Decompress);
         }
 
