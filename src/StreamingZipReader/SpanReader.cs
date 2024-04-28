@@ -5,21 +5,13 @@ using System.Text;
 namespace Wololo.StreamingZipReader;
 
 [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-internal ref struct SpanReader
+internal ref struct SpanReader(ReadOnlySpan<byte> span)
 {
-    private ReadOnlySpan<byte> span;
-
-    public SpanReader(ReadOnlySpan<byte> span)
-    {
-        this.span = span;
-    }
+    private ReadOnlySpan<byte> span = span;
 
     public int RemainingByteCount => span.Length;
 
-    public void Skip(int byteCount)
-    {
-        span = span[byteCount..];
-    }
+    public void Skip(int byteCount) => span = span[byteCount..];
 
     public bool ReadFixedValue(ReadOnlySpan<byte> value)
     {
