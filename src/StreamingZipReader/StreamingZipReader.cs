@@ -8,6 +8,7 @@ public sealed partial class StreamingZipReader : IAsyncDisposable
 {
     private static readonly byte[] LocalFileHeader = [(byte)'P', (byte)'K', 3, 4];
     private static readonly byte[] CentralDirectoryHeader = [(byte)'P', (byte)'K', 1, 2];
+    private static readonly byte[] Zip64ExtraTag = [1, 0];
 
     private readonly bool leaveOpen;
     private Stream? stream;
@@ -114,8 +115,7 @@ public sealed partial class StreamingZipReader : IAsyncDisposable
 
     private static void ParseZIP64ExtraField(ReadOnlySpan<byte> span, out long compressedSize, out long uncompressedSize)
     {
-        byte[] tag = [1, 0];
-        var tagIndex = span.IndexOf(tag);
+        var tagIndex = span.IndexOf(Zip64ExtraTag);
         if (tagIndex == -1)
             throw new InvalidDataException("ZIP64 file without extra field not supported.");
         var reader = new SpanReader(span[tagIndex..]);
