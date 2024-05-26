@@ -42,7 +42,7 @@ public sealed partial class StreamingZipReader : IAsyncDisposable
         }
         else if (currentEntry is not null)
         {
-            remainingLength = currentEntry.Value.CompressedLength;
+            remainingLength = currentEntry.CompressedLength;
         }
 
         if (remainingLength != 0)
@@ -190,7 +190,7 @@ public sealed partial class StreamingZipReader : IAsyncDisposable
 
         if (currentDeflateStream is null)
         {
-            currentSubStream = new SubStream(stream!, currentEntry.Value.CompressedLength);
+            currentSubStream = new SubStream(stream!, currentEntry.CompressedLength);
             currentDeflateStream = new DeflateStream(currentSubStream, CompressionMode.Decompress);
         }
 
