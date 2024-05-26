@@ -26,4 +26,10 @@
     <ProjectReference Include="..\..\src\StreamingZipReader\StreamingZipReader.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="*.zip">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

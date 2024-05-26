@@ -34,6 +34,13 @@ internal ref struct SpanReader(ReadOnlySpan<byte> span)
         return value;
     }
 
+    public ulong ReadUInt64LittleEndian()
+    {
+        var value = BinaryPrimitives.ReadUInt64LittleEndian(span);
+        span = span[sizeof(ulong)..];
+        return value;
+    }
+
     public ReadOnlySpan<byte> ReadBytes(int byteCount)
     {
         var value = span[..byteCount];

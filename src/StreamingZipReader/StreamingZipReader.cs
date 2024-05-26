@@ -98,6 +98,10 @@ public sealed partial class StreamingZipReader : IAsyncDisposable
                 goto readEntry;
 
             var fileName = Encoding.ASCII.GetString(buffer.Span[..fileNameLength]);
+
+            if (compressedSize == 0xffffffff)
+                ParseZIP64ExtraField(buffer.Span[fileNameLength..], out compressedSize, out uncompressedSize);
+
             currentEntry = new(fileName, crc32, compressedSize, uncompressedSize);
         }
         finally
@@ -108,10 +112,22 @@ public sealed partial class StreamingZipReader : IAsyncDisposable
         return true;
     }
 
+    private static void ParseZIP64ExtraField(ReadOnlySpan<byte> span, out long compressedSize, out long uncompressedSize)
+    {
+        byte[] tag = [1, 0];
+        var tagIndex = span.IndexOf(tag);
+        if (tagIndex == -1)
+            throw new InvalidDataException("ZIP64 file without extra field not supported.");
+        var reader = new SpanReader(span[tagIndex..]);
+        reader.Skip(4);
+        uncompressedSize = (long) reader.ReadUInt64LittleEndian();
+        compressedSize = (long) reader.ReadUInt64LittleEndian();
+    }
+
     private static (
         uint Crc32,
-        uint CompressedSize,
-        uint UncompressedSize,
+        long CompressedSize,
+        long UncompressedSize,
         ushort FileNameLength,
         ushort ExtraFieldLength) ParseMinimumLocalFileHeader(ReadOnlySpan<byte> span)
     {
@@ -134,8 +150,8 @@ public sealed partial class StreamingZipReader : IAsyncDisposable
         reader.Skip(4);
 
         var crc32 = reader.ReadUInt32LittleEndian();
-        var compressedSize = reader.ReadUInt32LittleEndian();
-        var uncompressedSize = reader.ReadUInt32LittleEndian();
+        var compressedSize = (long) reader.ReadUInt32LittleEndian();
+        var uncompressedSize = (long) reader.ReadUInt32LittleEndian();
         var fileNameLength = reader.ReadUInt16LittleEndian();
         var extraFieldLength = reader.ReadUInt16LittleEndian();
 
