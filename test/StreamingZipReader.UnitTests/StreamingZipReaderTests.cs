@@ -28,7 +28,7 @@ public class StreamingZipReaderTests
     [Fact]
     public async Task Zip64Test()
     {
-        using var stream = File.OpenRead("test.zip");
+        using var stream = File.OpenRead("testzip64.zip");
         await using var reader = new StreamingZipReader(stream);
         await reader.MoveToNextEntryAsync(true, CancellationToken.None);
         Assert.Equal(38, reader.CurrentEntry.Length);
@@ -38,5 +38,22 @@ public class StreamingZipReaderTests
         entryStream.CopyTo(dest);
         Assert.Equal(38, dest.Position);
         Assert.Equal(80, stream.Position);
+    }
+
+    [Fact]
+    public async Task ZipDDTest()
+    {
+        using var stream = File.OpenRead("testzipdd.zip");
+        await using var reader = new StreamingZipReader(stream);
+        await Assert.ThrowsAsync<NotImplementedException>(async () =>  {
+            await reader.MoveToNextEntryAsync(true, CancellationToken.None);
+            Assert.Equal(38, reader.CurrentEntry.Length);
+            Assert.Equal(29, reader.CurrentEntry.CompressedLength);
+            using var entryStream = reader.GetCurrentEntryStream();
+            var dest = new MemoryStream();
+            entryStream.CopyTo(dest);
+            Assert.Equal(38, dest.Position);
+            Assert.Equal(80, stream.Position);
+        });
     }
 }
