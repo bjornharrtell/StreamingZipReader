@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Text;
 
 namespace Wololo.StreamingZipReader.UnitTests;
 
@@ -45,15 +46,14 @@ public class StreamingZipReaderTests
     {
         using var stream = File.OpenRead("testzipdd.zip");
         await using var reader = new StreamingZipReader(stream);
-        await Assert.ThrowsAsync<NotImplementedException>(async () =>  {
-            await reader.MoveToNextEntryAsync(true, CancellationToken.None);
-            Assert.Equal(38, reader.CurrentEntry.Length);
-            Assert.Equal(29, reader.CurrentEntry.CompressedLength);
-            using var entryStream = reader.GetCurrentEntryStream();
-            var dest = new MemoryStream();
-            entryStream.CopyTo(dest);
-            Assert.Equal(38, dest.Position);
-            Assert.Equal(80, stream.Position);
-        });
+        await reader.MoveToNextEntryAsync(true, CancellationToken.None);
+        Assert.Equal(38, reader.CurrentEntry.Length);
+        Assert.Equal(0, reader.CurrentEntry.CompressedLength);
+        using var entryStream = reader.GetCurrentEntryStream();
+        var dest = new MemoryStream();
+        entryStream.CopyTo(dest);
+        Assert.Equal(38, dest.Position);
+        var str = Encoding.UTF8.GetString(dest.ToArray());
+        Assert.Equal(142, stream.Position);
     }
 }

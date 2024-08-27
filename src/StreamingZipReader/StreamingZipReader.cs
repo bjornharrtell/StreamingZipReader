@@ -84,7 +84,7 @@ public sealed partial class StreamingZipReader : IAsyncDisposable
             ArrayPool<byte>.Shared.Return(array);
         }
 
-        var (crc32, compressedSize, uncompressedSize, fileNameLength, extraFieldLength) = ParseMinimumLocalFileHeader(buffer.Span);
+        var (crc32, compressedSize, uncompressedSize, fileNameLength, extraFieldLength, dataDescriptor) = ParseMinimumLocalFileHeader(buffer.Span);
 
         array = ArrayPool<byte>.Shared.Rent(fileNameLength + extraFieldLength);
         buffer = array.AsMemory(0, fileNameLength + extraFieldLength);
@@ -103,7 +103,7 @@ public sealed partial class StreamingZipReader : IAsyncDisposable
             if (compressedSize == 0xffffffff)
                 ParseZIP64ExtraField(buffer.Span[fileNameLength..], out compressedSize, out uncompressedSize);
 
-            currentEntry = new(fileName, crc32, compressedSize, uncompressedSize);
+            currentEntry = new(fileName, crc32, compressedSize, uncompressedSize, dataDescriptor);
         }
         finally
         {
@@ -129,19 +129,34 @@ public sealed partial class StreamingZipReader : IAsyncDisposable
         long CompressedSize,
         long UncompressedSize,
         ushort FileNameLength,
-        ushort ExtraFieldLength) ParseMinimumLocalFileHeader(ReadOnlySpan<byte> span)
+        ushort ExtraFieldLength,
+        bool dataDescriptor) ParseMinimumLocalFileHeader(ReadOnlySpan<byte> span)
     {
         var reader = new SpanReader(span);
 
         if (!reader.ReadFixedValue(LocalFileHeader))
             throw new InvalidDataException("The stream is not a .zip archive having no bytes around file entries.");
 
+        // version needed to extract (2 bytes)
         var version = reader.ReadUInt16LittleEndian();
         if (version > 45)
             throw new NotSupportedException("Zip format versions greater than 4.5 have not been tested.");
 
+        var dataDescriptor = false;
+        // general purpose bit flag: (2 bytes)
         var flags = reader.ReadUInt16LittleEndian();
-        if (flags != 0)
+        // 0x08 - Bit 3
+        // If this bit is set, the fields crc-32, compressed 
+        // size and uncompressed size are set to zero in the 
+        // local header.  The correct values are put in the 
+        // data descriptor immediately following the compressed
+        // data.  (Note: PKZIP version 2.04g for DOS only 
+        // recognizes this bit for method 8 compression, newer 
+        // versions of PKZIP recognize this bit for any 
+        // compression method.)
+        if (flags == 0x08)
+            dataDescriptor = true;
+        else if (flags != 0)
             throw new NotImplementedException("Unknown flags");
 
         var compressionMethod = reader.ReadUInt16LittleEndian();
@@ -158,7 +173,7 @@ public sealed partial class StreamingZipReader : IAsyncDisposable
         if (compressedSize > 0 && compressionMethod != 8)
             throw new NotSupportedException("Unsupported compression method");
 
-        return (crc32, compressedSize, uncompressedSize, fileNameLength, extraFieldLength);
+        return (crc32, compressedSize, uncompressedSize, fileNameLength, extraFieldLength, dataDescriptor);
     }
 
     private static async ValueTask<int> ReadBlockAsync(Stream stream, Memory<byte> buffer, CancellationToken cancellationToken)
@@ -190,7 +205,9 @@ public sealed partial class StreamingZipReader : IAsyncDisposable
 
         if (currentDeflateStream is null)
         {
-            currentSubStream = new SubStream(stream!, currentEntry.CompressedLength);
+            // if compressed length is unknown, assume it can be max 2x uncompressed length
+            var compressedLength = currentEntry.DataDescriptor ? currentEntry.Length * 2 : currentEntry.CompressedLength;
+            currentSubStream = new SubStream(stream!, compressedLength);
             currentDeflateStream = new DeflateStream(currentSubStream, CompressionMode.Decompress);
         }
 
