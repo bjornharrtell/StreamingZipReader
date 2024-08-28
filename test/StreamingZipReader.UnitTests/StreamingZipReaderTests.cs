@@ -54,6 +54,6 @@ public class StreamingZipReaderTests
         entryStream.CopyTo(dest);
         Assert.Equal(38, dest.Position);
         var str = Encoding.UTF8.GetString(dest.ToArray());
-        Assert.Equal(142, stream.Position);
+        Assert.Equal(211, stream.Position);
     }
 }

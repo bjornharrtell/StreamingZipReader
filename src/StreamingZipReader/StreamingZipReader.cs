@@ -205,8 +205,7 @@ public sealed partial class StreamingZipReader : IAsyncDisposable
 
         if (currentDeflateStream is null)
         {
-            // if compressed length is unknown, assume it can be max 2x uncompressed length
-            var compressedLength = currentEntry.DataDescriptor ? currentEntry.Length * 2 : currentEntry.CompressedLength;
+            var compressedLength = currentEntry.DataDescriptor ? long.MaxValue : currentEntry.CompressedLength;
             currentSubStream = new SubStream(stream!, compressedLength);
             currentDeflateStream = new DeflateStream(currentSubStream, CompressionMode.Decompress);
         }
