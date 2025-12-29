@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/StreamingZipReader/StreamingZipReader.csproj" />
+  </Folder>
+  <Folder Name="/test/">
+    <Project Path="test/StreamingZipReader.UnitTests/StreamingZipReader.UnitTests.csproj" />
+  </Folder>
+</Solution>
